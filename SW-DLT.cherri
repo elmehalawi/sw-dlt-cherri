@@ -1,0 +1,334 @@
+#include 'actions/web'
+#include 'actions/text'
+#include 'actions/crypto'
+#define color red
+#define glyph threeDSquareStack
+
+// Icon assets (embedded at compile time)
+const aIcon = embedFile("assets/aIcon.png")
+const gIcon = embedFile("assets/gIcon.png")
+const hIcon = embedFile("assets/hIcon.png")
+const pIcon = embedFile("assets/pIcon.png")
+const sLogo = embedFile("assets/sLogo.png")
+const vIcon = embedFile("assets/vIcon.png")
+
+/*
+SW-DLT
+Official release on GitHub, avoid unknown sources!
+*/
+const globalSettings = {
+	"uninstall": false
+}
+/*
+SETTINGS ^^^^
+Change the above settings as needed by your usage:
+
+uninstall:
+ - This will uninstall all utilities used by the shortcut. Useful if the shortcut is being removed without deleting a-Shell. Default value is 'False'
+
+*/
+/*
+==== END OF USER SETTINGS ====
+Do not edit anything below this line, or the shortcut could stop working!
+
+GLOBAL SETTINGS INITIALIZATION
+*/
+const metadata = {
+	"author": "net00",
+	"version": "4.2.2"
+}
+const properties = {
+	"listMap": {
+		"1080p": "1080",
+		"1440p": "1440",
+		"2160p": "2160",
+		"30FPS": "30",
+		"360p": "360",
+		"480p": "480",
+		"60FPS": "60",
+		"720p": "720",
+		"About": "aboutPage",
+		"Default": "default",
+		"Download Audio": "audioDownload",
+		"Download Gallery": "galleryDownload",
+		"Download Playlist": "playlistDownload",
+		"Download Video": "videoDownload"
+	},
+	"lists": {
+		"galleryRange": [
+			"All Items",
+			"Custom Range"
+		],
+		"playlistType": [
+			"Video Playlist",
+			"Audio Playlist"
+		],
+		"videoFPS": [
+			"60FPS",
+			"30FPS"
+		],
+		"videoRes": [
+			"Default",
+			"2160p",
+			"1440p",
+			"1080p",
+			"720p",
+			"480p",
+			"360p"
+		]
+	},
+	"vars": {
+		"audioPlaylist": "-p -a",
+		"bitcoincash": "bitcoincash:qq5l9j3cgah8s6rz3xd5aet0u8wml2ezsgst9fedzz?amount=0.0086369",
+		"defaultAudio": "-a",
+		"defaultGallery": "-g 1-",
+		"defaultVideo": "-v -d",
+		"description": "SW-DLT (\"Shortcuts Wrapper for -DL Tools\") is a shortcut that makes using yt-dlp and gallery-dl fast and simple. It is powered by a-Shell, a very powerful terminal emulator for iPhone/iPad. ",
+		"docsURL": "https://github.com/net00-1/SW-DLT/blob/master/Docs.md",
+		"downloadError": "The download encountered an error. Try (if applicable) using the default quality, checking website support, or reviewing provided login details.",
+		"galleryCRPrompt": "Type a range of items to download. Newest item is at first position (1). Example: 1,2,3-7,10. Commas select individual items, hyphen declares a sub-range. Both can be combined.",
+		"galleryRangePrompt": "Select Item Range to Download",
+		"gallerydlURL": "https://github.com/mikf/gallery-dl",
+		"installing": "Adding resources in Files \u003e a-Shell \u003e SW-DLT. This happens only after install/update.",
+		"issuesURL": "https://github.com/net00-1/SW-DLT/issues",
+		"noURL": "NA, use clipboard/Share Sheet",
+		"playlistPrompt": "Select Type of Playlist Download",
+		"qrLink": "https://raw.githubusercontent.com/net00-1/SW-DLT/refs/heads/master/images/donation_qr.png",
+		"uninstallPrompt": "Uninstall mode is ON. Are you sure you want to uninstall? If not, please change the setting.",
+		"uninstallTitle": "Warning: uninstalling SW-DLT",
+		"uninstalled": "SW-DLT has been uninstalled. NOTE: It will be reinstalled \u0026 updated if started again.",
+		"videoFPSPrompt": "Select Video Framerate (Closest Available)",
+		"videoPlaylist": "-p -v",
+		"videoResPrompt": "Select Video Quality (Closest Available)",
+		"ytdlpURL": "https://github.com/yt-dlp/yt-dlp"
+	}
+}
+const altInput = getName(ShortcutInput)
+const Matches = containsText(altInput, "^DEBUG$", true)
+const RUN_MODE = getText(Matches)
+const uninstall = getValue(globalSettings, "uninstall")
+// OUTPUT HANDLER
+
+const decodedOutput = urlEncode(ShortcutInput)
+
+if RUN_MODE == "DEBUG" {
+	quicklook(decodedOutput)
+}
+const dOutDict = getDictionary(decodedOutput)
+const outputCode = getValue(dOutDict, "output_code")
+
+if outputCode.text {
+	if outputCode.text == "exception" {
+		const excTrace = getValue(dOutDict, "exc_trace")
+		@excTraceText = "{excTrace}"
+		const excMsg = getValue(properties, @excTraceText)
+		if !excMsg.text {
+			const b64Error = base64Encode(excTrace)
+			alert(b64Error, "Exception Alert")
+		} else {
+			alert("{excMsg}", "Exception Alert")
+		}
+		stop()
+	}
+	@fileName = "{dOutDict['file_name']}"
+	@fileTitle = "{dOutDict['file_title']}"
+	const File = rawAction("AsheKube.app.a-Shell.GetFileIntent", {
+		"ShowWhenRun": false,
+		"errorIfNotFound": true,
+		"fileName": "{@fileName}"
+	})
+	const safeTitle = replaceText(".", "_", @fileTitle, false, false)
+	const finalMedia = setName(File, safeTitle, false)
+	quicklook(finalMedia)
+	rawAction("AsheKube.app.a-Shell.ExecuteCommandIntent", {
+		"Show-command": true,
+		"ShowWhenRun": false,
+		"command": "rm -rf $HOME/Documents/SW-DLT/SW_DLT_DL_*",
+		"openWindow": "close"
+	})
+	stop()
+}
+/*
+WORKSPACE SETUP
+(We download the script last so its presence also works as a signal that all previous installation steps worked)
+*/
+const wsText = "WORKSPACE=\"$HOME/Documents/SW-DLT\"\nMAIN_SCRIPT=\"$WORKSPACE/SW_DLT.py\"\nVENV=\"$WORKSPACE/SW-DLT-ENV/\"\n\nif [ ! -f $MAIN_SCRIPT ] || [ ! -d $VENV ]\nthen mkdir -p $WORKSPACE\n     echo \"CONTINUE_INSTALL\"\nfi"
+const setupWorkspace = replaceText("\n+", ";", wsText, false, true)
+const output = rawAction("AsheKube.app.a-Shell.ExecuteCommandIntent", {
+	"ShowWhenRun": false,
+	"command": "dash -c '{setupWorkspace}'",
+	"keepGoing": false,
+	"openWindow": "close"
+})
+
+if output.text contains "CONTINUE_INSTALL" {
+	const installDep = "clear\nhideKeyboard\necho \"Please wait...\"\npython -m venv $HOME/Documents/SW-DLT/SW-DLT-ENV/\nsource $HOME/Documents/SW-DLT/SW-DLT-ENV/bin/activate\npip install chardet requests certifi mutagen -q --disable-pip-version-check --upgrade --force-reinstall\npip install yt-dlp yt-dlp-ejs yt-dlp-apple-webkit-jsi gallery-dl -q --disable-pip-version-check --upgrade --force-reinstall\ncurl -sL https://net00-1.github.io/SW-DLT/api/content/SW_DLT.py -o $HOME/Documents/SW-DLT/SW_DLT.py\ndeactivate\nopen shortcuts://\nclear && cd\nexit"
+	rawAction("AsheKube.app.a-Shell.ExecuteCommandIntent", {
+		"ShowWhenRun": false,
+		"command": "installDep",
+		"openWindow": "open"
+	})
+	showNotification("{properties['vars.installing']}", nil, false)
+	waitToReturn()
+}
+// SHORTCUT UPDATER
+
+const ucText = "LATEST_VERSION=\"https://net00-1.github.io/SW-DLT/api/updates/latest.json\"\nWORKSPACE=\"$HOME/Documents/SW-DLT\"\nLAST_CHECK_TS=\"$WORKSPACE/shortcut_update_ts.txt\"\nCURRENT_DATE=$(date +%s)\nCURRENT_VERSION=\"{metadata['version']}\"\n\nif [ ! -f $LAST_CHECK_TS ]\nthen echo 0 > $LAST_CHECK_TS \nfi\n\nTS_DATE=$(cat $LAST_CHECK_TS)\nDATE_DIFF=$(($CURRENT_DATE - $TS_DATE))\n\nif [ $((DATE_DIFF / 86400)) -ge 1 ]\nthen VER_CHECK=$(curl -sL $LATEST_VERSION)\n    date +%s > $LAST_CHECK_TS\n    if [ \"$CURRENT_VERSION\" != $(echo $VER_CHECK | jq -r \".version\") ]\n    then echo $VER_CHECK\n    fi\nfi"
+const updateCheck = replaceText("\n+", ";", ucText, false, true)
+const output1 = rawAction("AsheKube.app.a-Shell.ExecuteCommandIntent", {
+	"ShowWhenRun": false,
+	"command": "dash -c '{updateCheck}'",
+	"openWindow": "close"
+})
+const response = getDictionary(output1)
+
+if response {
+	const latestVer = getValue(response, "version")
+	const changelogText = getText(response['notes'])
+	if latestVer.text != metadata['version'] {
+		@updateMenuHeader = "An Update is Available ({metadata['version']} -> {latestVer})\nChangelog:\n{changelogText}"
+		menu @updateMenuHeader {
+		item "Update Now":
+			rawAction("AsheKube.app.a-Shell.ExecuteCommandIntent", {
+				"ShowWhenRun": false,
+				"command": "rm -rf $HOME/Documents/SW-DLT/SW_DLT.py",
+				"openWindow": "close"
+			})
+			const updateURL = replaceText("^.+?(?=\/shortcut)", "shortcuts:/", "{response['url']}", false, true)
+			openURL(updateURL)
+			stop()
+		item "Snooze 1 day":
+		}
+	}
+}
+// MAIN INPUT HANDLING
+
+
+if !ShortcutInput {
+	@mediaURL = Clipboard
+} else {
+	@mediaURL = ShortcutInput
+}
+@args = nil
+// MAIN MENU HANDLING
+
+
+if uninstall.text {
+	alert("{properties['vars.uninstallPrompt']}", "{properties['vars.uninstallTitle']}")
+	rawAction("AsheKube.app.a-Shell.ExecuteCommandIntent", {
+		"ShowWhenRun": false,
+		"command": "rm -rf $HOME/Documents/SW-DLT",
+		"openWindow": "close"
+	})
+	alert("{properties['vars.uninstalled']}", "Exception Alert")
+	stop()
+} else {
+	const psText = "WORKSPACE=\"$HOME/Documents/SW-DLT\"\nPARTIAL_DL=\"$WORKSPACE/SW_DLT_DL_metadata.json\"\n\nif [ -f $PARTIAL_DL ]\nthen cat $PARTIAL_DL\nfi"
+	const partialSearch = replaceText("\n+", ";", psText, false, true)
+	const output2 = rawAction("AsheKube.app.a-Shell.ExecuteCommandIntent", {
+		"ShowWhenRun": false,
+		"command": "dash -c '{partialSearch}'",
+		"openWindow": "close"
+	})
+	const partialDownload = getDictionary(output2)
+	if partialDownload {
+		const partUrlPreview = containsText("{partialDownload['Keys']}", '^.{0,120}', false)
+		const partDisplayURL = "{partUrlPreview} -- "
+		const partialPrompt = "SW-DLT: Unfinished Download!\n\nPartial or unsaved download found: {partDisplayURL} Would you like to resume it?"
+		menu partialPrompt {
+		item "Accept":
+			@mediaURL = partialDownload['Keys']
+			@args = partialDownload['Values']
+		item "Dismiss":
+			rawAction("AsheKube.app.a-Shell.ExecuteCommandIntent", {
+				"ShowWhenRun": false,
+				"command": "rm -rf $HOME/Documents/SW-DLT/SW_DLT_DL_metadata.json",
+				"openWindow": "close"
+			})
+		}
+	}
+	if !@args {
+		const urls = getURLs(@mediaURL)
+		if urls {
+			@enabledFeatures = "BEGIN:VCARD\nN:Download Video;;;;\nPHOTO;ENCODING=b:{vIcon}\nORG:Videos, GIFs, Clips at Custom Quality;\nEND:VCARD\nBEGIN:VCARD\nN:Download Audio;;;;\nPHOTO;ENCODING=b:{aIcon}\nORG:Standalone or Video-Extracted;\nEND:VCARD\nBEGIN:VCARD\nN:Download Playlist;;;;\nPHOTO;ENCODING=b:{pIcon}\nORG:Video or Audio, at Default Quality;\nEND:VCARD\nBEGIN:VCARD\nN:Download Gallery;;;;\nPHOTO;ENCODING=b:{gIcon}\nORG:Images, GIFs, Clips, Albums, Feeds;\nEND:VCARD"
+		} else {
+			@mediaURL = "{properties['vars.noURL']}"
+		}
+		const charCount = count(@mediaURL, "Characters")
+		if charCount <= 30 {
+			@displayURL = "{@mediaURL}"
+		} else {
+			const urlPreview = containsText(@mediaURL, '^.{30}', false)
+			@displayURL = "{urlPreview}..."
+		}
+		@mainMenuTemplate = "{@enabledFeatures}\nBEGIN:VCARD\nN:About;;;;\nPHOTO;ENCODING=b:{hIcon}\nORG:Donate, helpful links, report issues;\nEND:VCARD"
+		const mainMenu = setName(@mainMenuTemplate, "mainMenu.vcf", true)
+		@mainMenuHeader = "SW-DLT: Main Menu {RUN_MODE}\nURL: {@displayURL}"
+		const dlChoice = chooseFromList(mainMenu, @mainMenuHeader, false, false)
+		const listMapRefRaw = getValue(properties, "listMap")
+		const listMapRef = getDictionary(listMapRefRaw)
+		const dlChoiceVal = getValue(listMapRef, dlChoice)
+		@dlChoiceKeyText = "{dlChoiceVal}"
+		if @dlChoiceKeyText == "videoDownload" {
+			const resChoice = chooseFromList(properties['lists.videoRes'], "{properties['vars.videoResPrompt']}", false, false)
+			const resListMap = getDictionary(properties['listMap'])
+			const res = getValue(resListMap, resChoice)
+			if res.text != "default" {
+				const fpsChoice = chooseFromList(properties['lists.videoFPS'], "{properties['vars.videoFPSPrompt']}", false, false)
+				const fpsListMapRaw = getValue(properties, "listMap")
+				const fpsListMap = getDictionary(fpsListMapRaw)
+				const fps = getValue(fpsListMap, fpsChoice)
+				@args = "-v {res} {fps}"
+			} else {
+				@args = "{properties['vars.defaultVideo']}"
+			}
+		}
+		if @dlChoiceKeyText == "audioDownload" {
+			@args = "{properties['vars.defaultAudio']}"
+		}
+		if @dlChoiceKeyText == "playlistDownload" {
+			const playlistChoice = chooseFromList(properties['lists.playlistType'], "{properties['vars.playlistPrompt']}", false, false)
+			@playlistChoiceText = "{playlistChoice}"
+			if @playlistChoiceText == "Video Playlist" {
+				@args = "{properties['vars.videoPlaylist']}"
+			} else {
+				@args = "{properties['vars.audioPlaylist']}"
+			}
+		}
+		if @dlChoiceKeyText == "galleryDownload" {
+			const gRangeChoice = chooseFromList(properties['lists.galleryRange'], "{properties['vars.galleryRangePrompt']}", false, false)
+			@gRangeChoiceText = "{gRangeChoice}"
+			if @gRangeChoiceText == "All Items" {
+				@args = "{properties['vars.defaultGallery']}"
+			} else {
+				const custRange = prompt("{properties['vars.galleryCRPrompt']}", "Text")
+				@args = "-g {custRange}"
+			}
+		}
+		if @dlChoiceKeyText == "aboutPage" {
+			@aboutTemplate = "<html>\n    <head>\n    <title>SW-DLT: About</title>\n    <meta name='viewport' content='width=device-width, initial-scale=1.0' charset='UTF-8'/>\n    <style>\n        body {\n            font-size: 18px;\n            font-family: helvetica, arial, sans-serif;\n            word-wrap: break-word;\n        }\n        @media(prefers-color-scheme: dark) {\n            body {\n                color: #E6E6E6;\n                background-color: #121212;\n            }\n        .footer {\n                color: #E6E6E6;\n                background-color: #121212;\n           }\n        }\n        @media(prefers-color-scheme: light) {\n            body {\n                color: #000000;\n                background-color: #FDFDFD;\n            }\n        .footer {\n                color: #000000;\n                background-color: #FDFDFD;\n           }\n        }\n        .custom-header {\n            display: flex;\n            justify-content: center;\n            align-items: center;\n        }\n        .custom-header h2 {\n            align-self: flex-end;\n            padding-left: 1%;\n        }    \n        .logo {\n            height: 50px;\n            width: auto;\n        }\n        .description {\n            text-align: center;\n            padding-left: 5%;\n            padding-right: 5%;\n        }\n        .description p {\n            font-size: 12pt;\n        }\n        .links {\n            padding-left: 5%;\n            padding-right: 5%;\n            text-align: center;\n        }\n        .footer {\n            color: #F28D33;\n            position: sticky;\n            margin-left: auto;\n            margin-right: auto;\n            text-align: center;\n            left: 0;\n            right: 0;\n            bottom: 0;\n            font-size: 10pt;\n            padding-left: 5%;\n            padding-right: 5%;\n        }\n        hr {\n            opacity: 50%;\n        }\n        </style>\n    </head>\n    <body>\n        <div class='custom-header'>\n            <img class='logo' alt='logo' src='data:image/png;base64,{sLogo}'>\n            <h2>SW-DLT</h2>\n        </div>\n        <div class='links'>\n            <hr />\n            <h3>Donations ❤️</h3>\n            <p>If this shortcut has helped you, please consider leaving a small tip by scanning or holding on the QR code. Thank you!</p>\n            <a href='{properties['vars.bitcoincash']}'><img src='{properties['vars.qrLink']}' width=\"40%\" /></a>\n            <hr />\n            <h3>Useful Links</h3>\n            <p><a href='{properties['vars.docsURL']}'>SW-DLT Documentation</a></p>\n            <p><a href='{properties['vars.issuesURL']}'>REPORT AN ISSUE HERE</a></p>\n            <p><a href='{properties['vars.ytdlpURL']}'>yt-dlp on GitHub</a>\n            <a href='{properties['vars.gallerydlURL']}'>gallery-dl on GitHub</a></p>\n            <p></p>\n        </div>\n        <div class='description'>\n        <hr />\n            <h3>Description</h3>\n            <p>{properties['vars.description']}</p>\n            <p><b>Author:</b> {metadata['author']}</p>\n            <p><b>Version:</b> {metadata['version']}</p>\n        </div>\n        <div class='footer'>\n        <hr />\n            <p>Official release on GitHub. Avoid unknown sources!</p>\n        </div>\n    </body>\n</html>"
+			const aboutHTML = getRichTextFromHTML(@aboutTemplate)
+			showWebpage(aboutHTML, true)
+		}
+	}
+}
+// MAIN SCRIPT EXECUTION
+
+
+if !@args {
+	stop()
+}
+
+if RUN_MODE == "DEBUG" {
+	const Text = "python SW_DLT.py {@mediaURL}{@args}"
+	quicklook(Text)
+}
+openApp("AsheKube.app.a-Shell")
+wait(0)
+const runScript = "cd $HOME/Documents/SW-DLT\nsource SW-DLT-ENV/bin/activate\npython SW_DLT.py {@mediaURL} {@args}\ndeactivate\nclear && cd"
+rawAction("AsheKube.app.a-Shell.ExecuteCommandIntent", {
+	"ShowWhenRun": false,
+	"command": "runScript",
+	"keepGoing": false,
+	"openWindow": "open"
+})

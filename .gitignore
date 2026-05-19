@@ -1,0 +1,7 @@
+# Cherri build artifacts
+*.shortcut
+*.plist
+*_processed.cherri
+
+# OS
+.DS_Store
