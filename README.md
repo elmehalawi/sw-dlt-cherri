@@ -52,12 +52,6 @@ This produces:
 - `SW-DLT.plist` - the raw plist XML for inspection
 - `SW-DLT_processed.cherri` - the source after preprocessing
 
-## How It Works
-
-The original shortcut stores 6 PNG icons as base64 strings inside a large dictionary literal. This makes the source file ~75KB and hard to read/maintain.
-
-This version uses Cherri's `embedFile()` action to read the PNG files from disk at compile time and base64-encode them into the shortcut automatically. The source file is ~16KB and the icons are stored as standard image files in `assets/`.
-
 ## Credits
 
 - **SW-DLT** by [net00](https://github.com/net00-1/SW-DLT) - the original Apple Shortcut
