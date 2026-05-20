@@ -2,20 +2,25 @@
 
 [SW-DLT](https://github.com/net00-1/SW-DLT) ("Shortcuts Wrapper for -DL Tools") rewritten in [Cherri](https://github.com/electrikmilk/cherri), a compiled DSL that targets Apple Shortcuts.
 
-The original SW-DLT shortcut is distributed as a `.shortcut` plist file. This project decompiles it to Cherri source code, refactors the inline base64 icon assets into separate PNG files using Cherri's `embedFile()`, and recompiles it back to a `.shortcut`.
+The original SW-DLT shortcut is distributed as a `.shortcut` plist file. This project decompiles it to Cherri source code, refactors inline assets and text blobs into separate files using Cherri's `embedFile()`, and recompiles it back to a `.shortcut`.
 
 ## Project Structure
 
 ```
 SW-DLT.cherri       # Main source file
-assets/              # Icon PNGs (embedded at compile time via embedFile())
+assets/              # Assets embedded at compile time via embedFile()
   aIcon.png          # Audio download icon
   gIcon.png          # Gallery download icon
   hIcon.png          # Help/about icon
   pIcon.png          # Playlist download icon
   sLogo.png          # SW-DLT logo
   vIcon.png          # Video download icon
+  install.sh         # Dependency installation script
+  update_check.sh    # Shortcut version update checker script
+  about.html         # About page HTML template
 ```
+
+Icon PNGs are used directly as base64 after embedding. Text assets (`install.sh`, `update_check.sh`, `about.html`) are decoded at runtime via `base64Decode()`, with dynamic values substituted using `replaceText()`.
 
 ## Prerequisites
 
