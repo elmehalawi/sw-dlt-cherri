@@ -12,6 +12,11 @@ const pIcon = embedFile("assets/pIcon.png")
 const sLogo = embedFile("assets/sLogo.png")
 const vIcon = embedFile("assets/vIcon.png")
 
+// Text assets (embedded at compile time, decoded at runtime)
+const installDepEmbed = embedFile("assets/install.sh")
+const ucTextEmbed = embedFile("assets/update_check.sh")
+const aboutTemplateEmbed = embedFile("assets/about.html")
+
 /*
 SW-DLT
 Official release on GitHub, avoid unknown sources!
@@ -162,7 +167,7 @@ const output = rawAction("AsheKube.app.a-Shell.ExecuteCommandIntent", {
 })
 
 if output.text contains "CONTINUE_INSTALL" {
-	const installDep = "clear\nhideKeyboard\necho \"Please wait...\"\npython -m venv $HOME/Documents/SW-DLT/SW-DLT-ENV/\nsource $HOME/Documents/SW-DLT/SW-DLT-ENV/bin/activate\npip install chardet requests certifi mutagen -q --disable-pip-version-check --upgrade --force-reinstall\npip install yt-dlp yt-dlp-ejs yt-dlp-apple-webkit-jsi gallery-dl -q --disable-pip-version-check --upgrade --force-reinstall\ncurl -sL https://net00-1.github.io/SW-DLT/api/content/SW_DLT.py -o $HOME/Documents/SW-DLT/SW_DLT.py\ndeactivate\nopen shortcuts://\nclear && cd\nexit"
+	const installDep = base64Decode(installDepEmbed)
 	rawAction("AsheKube.app.a-Shell.ExecuteCommandIntent", {
 		"ShowWhenRun": false,
 		"command": "installDep",
@@ -173,7 +178,9 @@ if output.text contains "CONTINUE_INSTALL" {
 }
 // SHORTCUT UPDATER
 
-const ucText = "LATEST_VERSION=\"https://net00-1.github.io/SW-DLT/api/updates/latest.json\"\nWORKSPACE=\"$HOME/Documents/SW-DLT\"\nLAST_CHECK_TS=\"$WORKSPACE/shortcut_update_ts.txt\"\nCURRENT_DATE=$(date +%s)\nCURRENT_VERSION=\"{metadata['version']}\"\n\nif [ ! -f $LAST_CHECK_TS ]\nthen echo 0 > $LAST_CHECK_TS \nfi\n\nTS_DATE=$(cat $LAST_CHECK_TS)\nDATE_DIFF=$(($CURRENT_DATE - $TS_DATE))\n\nif [ $((DATE_DIFF / 86400)) -ge 1 ]\nthen VER_CHECK=$(curl -sL $LATEST_VERSION)\n    date +%s > $LAST_CHECK_TS\n    if [ \"$CURRENT_VERSION\" != $(echo $VER_CHECK | jq -r \".version\") ]\n    then echo $VER_CHECK\n    fi\nfi"
+const ucTextRaw = base64Decode(ucTextEmbed)
+@ucTextDecoded = "{ucTextRaw}"
+const ucText = replaceText("__CURRENT_VERSION__", "{metadata['version']}", @ucTextDecoded, false, false)
 const updateCheck = replaceText("\n+", ";", ucText, false, true)
 const output1 = rawAction("AsheKube.app.a-Shell.ExecuteCommandIntent", {
 	"ShowWhenRun": false,
@@ -306,7 +313,10 @@ if uninstall.text {
 			}
 		}
 		if @dlChoiceKeyText == "aboutPage" {
-			@aboutTemplate = "<html>\n    <head>\n    <title>SW-DLT: About</title>\n    <meta name='viewport' content='width=device-width, initial-scale=1.0' charset='UTF-8'/>\n    <style>\n        body {\n            font-size: 18px;\n            font-family: helvetica, arial, sans-serif;\n            word-wrap: break-word;\n        }\n        @media(prefers-color-scheme: dark) {\n            body {\n                color: #E6E6E6;\n                background-color: #121212;\n            }\n        .footer {\n                color: #E6E6E6;\n                background-color: #121212;\n           }\n        }\n        @media(prefers-color-scheme: light) {\n            body {\n                color: #000000;\n                background-color: #FDFDFD;\n            }\n        .footer {\n                color: #000000;\n                background-color: #FDFDFD;\n           }\n        }\n        .custom-header {\n            display: flex;\n            justify-content: center;\n            align-items: center;\n        }\n        .custom-header h2 {\n            align-self: flex-end;\n            padding-left: 1%;\n        }    \n        .logo {\n            height: 50px;\n            width: auto;\n        }\n        .description {\n            text-align: center;\n            padding-left: 5%;\n            padding-right: 5%;\n        }\n        .description p {\n            font-size: 12pt;\n        }\n        .links {\n            padding-left: 5%;\n            padding-right: 5%;\n            text-align: center;\n        }\n        .footer {\n            color: #F28D33;\n            position: sticky;\n            margin-left: auto;\n            margin-right: auto;\n            text-align: center;\n            left: 0;\n            right: 0;\n            bottom: 0;\n            font-size: 10pt;\n            padding-left: 5%;\n            padding-right: 5%;\n        }\n        hr {\n            opacity: 50%;\n        }\n        </style>\n    </head>\n    <body>\n        <div class='custom-header'>\n            <img class='logo' alt='logo' src='data:image/png;base64,{sLogo}'>\n            <h2>SW-DLT</h2>\n        </div>\n        <div class='links'>\n            <hr />\n            <h3>Donations ❤️</h3>\n            <p>If this shortcut has helped you, please consider leaving a small tip by scanning or holding on the QR code. Thank you!</p>\n            <a href='{properties['vars.bitcoincash']}'><img src='{properties['vars.qrLink']}' width=\"40%\" /></a>\n            <hr />\n            <h3>Useful Links</h3>\n            <p><a href='{properties['vars.docsURL']}'>SW-DLT Documentation</a></p>\n            <p><a href='{properties['vars.issuesURL']}'>REPORT AN ISSUE HERE</a></p>\n            <p><a href='{properties['vars.ytdlpURL']}'>yt-dlp on GitHub</a>\n            <a href='{properties['vars.gallerydlURL']}'>gallery-dl on GitHub</a></p>\n            <p></p>\n        </div>\n        <div class='description'>\n        <hr />\n            <h3>Description</h3>\n            <p>{properties['vars.description']}</p>\n            <p><b>Author:</b> {metadata['author']}</p>\n            <p><b>Version:</b> {metadata['version']}</p>\n        </div>\n        <div class='footer'>\n        <hr />\n            <p>Official release on GitHub. Avoid unknown sources!</p>\n        </div>\n    </body>\n</html>"
+			const aboutDecoded = base64Decode(aboutTemplateEmbed)
+			@aboutDecodedText = "{aboutDecoded}"
+			const about1 = replaceText("__SLOGO__", "{sLogo}", @aboutDecodedText, false, false)
+			@aboutTemplate = replaceText("__VERSION__", "{metadata['version']}", about1, false, false)
 			const aboutHTML = getRichTextFromHTML(@aboutTemplate)
 			showWebpage(aboutHTML, true)
 		}
